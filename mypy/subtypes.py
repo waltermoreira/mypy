@@ -162,6 +162,15 @@ class SubtypeVisitor(TypeVisitor[bool]):
             return False
 
 
+def is_very_generic_callable(fun: Callable) -> bool:
+    """True if 'fun' has signature (*Any, **Any) -> Any"""
+    if fun.arg_kinds == [mypy.nodes.ARG_STAR, mypy.nodes.ARG_STAR2]:
+        arg_type, kwarg_type = fun.arg_types
+        if isinstance(arg_type, AnyType) and isinstance(kwarg_type, AnyType):
+            return True
+    return False
+
+
 def is_callable_subtype(left: Callable, right: Callable, ignore_return: bool = False) -> bool:
     """Is left a subtype of right?"""
     # TODO: Support named arguments, **args, etc.
@@ -180,6 +189,9 @@ def is_callable_subtype(left: Callable, right: Callable, ignore_return: bool = F
     # Check return types.
     if not ignore_return and not is_subtype(left.ret_type, right.ret_type):
         return False
+
+    if is_very_generic_callable(right):
+        return True
 
     # Check argument types.
     if left.min_args > right.min_args:
